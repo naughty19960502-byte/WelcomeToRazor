@@ -79,7 +79,7 @@ private:
 
     //── DSP chain ───────────────────────────────────────────────────────────
     using Filter    = juce::dsp::IIR::Filter<float>;
-    using FilterDup = juce::dsp::ProcessorDuplexer<Filter>;
+    using FilterDup = juce::dsp::ProcessorDuplicator<Filter, juce::dsp::IIR::Coefficients<float>>;
 
     // Saturation (GASH)
     juce::dsp::WaveShaper<float> saturation;
