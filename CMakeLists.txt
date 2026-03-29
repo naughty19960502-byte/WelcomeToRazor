@@ -36,6 +36,9 @@ juce_add_plugin(WelcomeToRazor
     COPY_PLUGIN_AFTER_BUILD FALSE
 )
 
+# ── Generate JuceHeader.h ─────────────────────────────────────────────────────
+juce_generate_juce_header(WelcomeToRazor)
+
 # ── Sources ────────────────────────────────────────────────────────────────────
 target_sources(WelcomeToRazor
     PRIVATE
