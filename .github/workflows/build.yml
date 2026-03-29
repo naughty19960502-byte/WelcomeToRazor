@@ -106,10 +106,10 @@ jobs:
 
           if [ -n "$ARM_VST3" ] && [ -n "$X64_VST3" ]; then
             cp -R "$ARM_VST3" artifacts/WelcomeToRazor.vst3
-            ARM_BIN=$(find "$ARM_VST3/Contents" -type f -not -name "*.plist" | head -1)
-            X64_BIN=$(find "$X64_VST3/Contents" -type f -not -name "*.plist" | head -1)
+            ARM_BIN=$(find "$ARM_VST3/Contents/MacOS" -type f | head -1)
+            X64_BIN=$(find "$X64_VST3/Contents/MacOS" -type f | head -1)
             if [ -n "$ARM_BIN" ] && [ -n "$X64_BIN" ]; then
-              DEST_BIN=$(find "artifacts/WelcomeToRazor.vst3/Contents" -type f -not -name "*.plist" | head -1)
+              DEST_BIN=$(find "artifacts/WelcomeToRazor.vst3/Contents/MacOS" -type f | head -1)
               lipo "$ARM_BIN" "$X64_BIN" -create -output "$DEST_BIN"
               echo "✅ VST3 Universal Binary created"
               lipo -archs "$DEST_BIN"
@@ -122,10 +122,10 @@ jobs:
 
           if [ -n "$ARM_AU" ] && [ -n "$X64_AU" ]; then
             cp -R "$ARM_AU" artifacts/WelcomeToRazor.component
-            ARM_BIN=$(find "$ARM_AU/Contents"  -type f -not -name "*.plist" | head -1)
-            X64_BIN=$(find "$X64_AU/Contents"  -type f -not -name "*.plist" | head -1)
+            ARM_BIN=$(find "$ARM_AU/Contents/MacOS"  -type f | head -1)
+            X64_BIN=$(find "$X64_AU/Contents/MacOS"  -type f | head -1)
             if [ -n "$ARM_BIN" ] && [ -n "$X64_BIN" ]; then
-              DEST_BIN=$(find "artifacts/WelcomeToRazor.component/Contents" -type f -not -name "*.plist" | head -1)
+              DEST_BIN=$(find "artifacts/WelcomeToRazor.component/Contents/MacOS" -type f | head -1)
               lipo "$ARM_BIN" "$X64_BIN" -create -output "$DEST_BIN"
               echo "✅ AU Universal Binary created"
               lipo -archs "$DEST_BIN"
