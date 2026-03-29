@@ -183,7 +183,7 @@ void RazorLookAndFeel::drawPopupMenuItem (juce::Graphics& g,
     {
         g.setColour (juce::Colour (kOrange));
         juce::Path tick;
-        tick.addStar ({ area.getRight() - 12.0f, area.getCentreY() }, 3.0f, 6.0f, 5);
+        tick.addStar (juce::Point<float> (area.getRight() - 12.0f, (float) area.getCentreY()), 3.0f, 6.0f, 5);
         g.fillPath (tick);
     }
 }
