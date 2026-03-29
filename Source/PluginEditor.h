@@ -4,68 +4,123 @@
 #include "PluginProcessor.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Custom LookAndFeel – Industrial Razor style
+//  Colour palette
+// ─────────────────────────────────────────────────────────────────────────────
+namespace RazorColours
+{
+    static constexpr juce::uint32 kBgPlate      = 0xFF0D0B09;
+    static constexpr juce::uint32 kRust1        = 0xFF3D1A08;
+    static constexpr juce::uint32 kRust2        = 0xFF5C2A0C;
+    static constexpr juce::uint32 kMetalDark    = 0xFF1A1614;
+    static constexpr juce::uint32 kMetalMid     = 0xFF2E2A26;
+    static constexpr juce::uint32 kMetalLight   = 0xFF504840;
+    static constexpr juce::uint32 kRivet        = 0xFF706050;
+    static constexpr juce::uint32 kBloodDark    = 0xFF5A0000;
+    static constexpr juce::uint32 kBloodMid     = 0xFF8B0000;
+    static constexpr juce::uint32 kBloodBright  = 0xFFCC2200;
+    static constexpr juce::uint32 kOrange       = 0xFFFF6600;
+    static constexpr juce::uint32 kGlowEye      = 0xFFFF4400;
+    static constexpr juce::uint32 kLCDBg        = 0xFF0A0F06;
+    static constexpr juce::uint32 kLCDText      = 0xFF88CC33;
+    static constexpr juce::uint32 kLCDDim       = 0xFF2A3A10;
+    static constexpr juce::uint32 kPresetText   = 0xFFCC2200;
+    static constexpr juce::uint32 kPresetHi     = 0xFFFF4422;
+    static constexpr juce::uint32 kLabelBg      = 0xFF100E0C;
+    static constexpr juce::uint32 kLabelBorder  = 0xFF3A2010;
+    static constexpr juce::uint32 kLabelText    = 0xFFB0A090;
+    static constexpr juce::uint32 kChain        = 0xFF282420;
+    static constexpr juce::uint32 kChainHi      = 0xFF504840;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  LookAndFeel – blood-rusted gear knobs
 // ─────────────────────────────────────────────────────────────────────────────
 class RazorLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
     RazorLookAndFeel();
 
-    void drawRotarySlider (juce::Graphics&, int x, int y, int width, int height,
-                           float sliderPosProportional, float rotaryStartAngle,
-                           float rotaryEndAngle, juce::Slider&) override;
+    void drawRotarySlider (juce::Graphics&, int x, int y, int w, int h,
+                           float sliderPos, float startAngle, float endAngle,
+                           juce::Slider&) override;
 
-    void drawComboBox (juce::Graphics&, int width, int height, bool isButtonDown,
-                       int buttonX, int buttonY, int buttonW, int buttonH,
-                       juce::ComboBox&) override;
-
-    void drawPopupMenuBackground (juce::Graphics&, int width, int height) override;
+    void drawPopupMenuBackground (juce::Graphics&, int w, int h) override;
 
     void drawPopupMenuItem (juce::Graphics&, const juce::Rectangle<int>&,
                             bool isSeparator, bool isActive, bool isHighlighted,
                             bool isTicked, bool hasSubMenu,
-                            const juce::String& text, const juce::String& shortcutKeyText,
-                            const juce::Drawable* icon,
-                            const juce::Colour* textColour) override;
+                            const juce::String& text, const juce::String&,
+                            const juce::Drawable*, const juce::Colour*) override;
 
-    juce::Font getComboBoxFont (juce::ComboBox&) override;
     juce::Font getPopupMenuFont() override;
 
 private:
-    // Palette
-    static constexpr juce::uint32 kBgColour      = 0xFF0A0A0A;
-    static constexpr juce::uint32 kPanelColour    = 0xFF141414;
-    static constexpr juce::uint32 kMetalDark      = 0xFF1E1E1E;
-    static constexpr juce::uint32 kMetalMid       = 0xFF2E2E2E;
-    static constexpr juce::uint32 kMetalLight     = 0xFF454545;
-    static constexpr juce::uint32 kSilver         = 0xFFC0C0C0;
-    static constexpr juce::uint32 kOrange         = 0xFFFF6600;
-    static constexpr juce::uint32 kBloodRed       = 0xFF8B0000;
-    static constexpr juce::uint32 kBrightRed      = 0xFFCC0000;
-    static constexpr juce::uint32 kGlowRed        = 0xFFFF2020;
-    static constexpr juce::uint32 kTextColour     = 0xFFD0D0D0;
+    void drawGearTeeth (juce::Graphics& g, float cx, float cy,
+                        float innerR, float outerR, int numTeeth,
+                        juce::Colour col) const;
+    void drawBloodSplat (juce::Graphics& g, juce::Random& rng,
+                         float cx, float cy, float radius, int n) const;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Knob with label
+//  LCD display component (centre panel)
+// ─────────────────────────────────────────────────────────────────────────────
+class LCDDisplay : public juce::Component
+{
+public:
+    LCDDisplay();
+    void setText (const juce::String& t);
+    void paint   (juce::Graphics&) override;
+
+private:
+    juce::String text { "Devil Chorus" };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Preset list panel (right side, click-to-select)
+// ─────────────────────────────────────────────────────────────────────────────
+class PresetListPanel : public juce::Component
+{
+public:
+    PresetListPanel();
+    void setSelectedIndex (int idx);
+    int  getSelectedIndex () const { return selectedIdx; }
+
+    std::function<void(int)> onSelect;
+
+    void paint      (juce::Graphics&) override;
+    void mouseDown  (const juce::MouseEvent&) override;
+    void mouseMove  (const juce::MouseEvent&) override;
+    void mouseExit  (const juce::MouseEvent&) override;
+
+private:
+    int selectedIdx { 0 };
+    int hoveredIdx  { -1 };
+    static constexpr int kRowH = 26;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Knob widget
 // ─────────────────────────────────────────────────────────────────────────────
 struct RazorKnob : public juce::Component
 {
     explicit RazorKnob (const juce::String& labelText);
 
     juce::Slider slider;
-    juce::Label  valueLabel;
     juce::String name;
 
     void resized() override;
-    void paint  (juce::Graphics&) override;
+    void paint   (juce::Graphics&) override;
+
+private:
+    juce::Label valueLabel;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Main Editor
+//  Main editor
 // ─────────────────────────────────────────────────────────────────────────────
-class WelcomeToRazorAudioProcessorEditor  : public juce::AudioProcessorEditor,
-                                            private juce::Timer
+class WelcomeToRazorAudioProcessorEditor : public juce::AudioProcessorEditor,
+                                           private juce::Timer
 {
 public:
     explicit WelcomeToRazorAudioProcessorEditor (WelcomeToRazorAudioProcessor&);
@@ -75,29 +130,36 @@ public:
     void resized () override;
 
 private:
+    // ── Timer ──────────────────────────────────────────────────────────
     void timerCallback() override;
-    void buildPresetBox();
 
-    // ── Background paint helpers ─────────────────────────────────────────
-    void paintBackground (juce::Graphics&);
-    void paintTitle      (juce::Graphics&);
-    void paintBloodSplatter (juce::Graphics& g, juce::Random& rng,
-                              float cx, float cy, float maxRadius, int numDrops);
-    void paintRunicText  (juce::Graphics&);
-    void paintPresetsPanel (juce::Graphics&);
-    void paintDemonMask  (juce::Graphics&);
+    // ── Paint helpers ──────────────────────────────────────────────────
+    void paintBackground   (juce::Graphics&);
+    void paintDemonFace    (juce::Graphics&);
+    void paintTitle        (juce::Graphics&);
+    void paintChains       (juce::Graphics&);
+    void paintRunicBand    (juce::Graphics&);
+    void paintKrumpText    (juce::Graphics&);
+    void paintCornerRunes  (juce::Graphics&);
+    void paintBloodSplatter(juce::Graphics&, juce::Random&,
+                            float cx, float cy, float maxR, int n);
 
     WelcomeToRazorAudioProcessor& processor;
     RazorLookAndFeel razorLAF;
 
-    // 5 knobs
+    // OpenGL context for hardware-accelerated rendering
+    juce::OpenGLContext openGLContext;
+
+    // Knobs
     RazorKnob knobGash    { "GASH"    };
     RazorKnob knobBlood   { "BLOOD"   };
     RazorKnob knobSharpen { "SHARPEN" };
     RazorKnob knobRecoil  { "RECOIL"  };
     RazorKnob knobMixtape { "MIXTAPE" };
 
-    juce::ComboBox presetBox;
+    // UI panels
+    LCDDisplay      lcdDisplay;
+    PresetListPanel presetPanel;
 
     // APVTS attachments
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
@@ -105,10 +167,7 @@ private:
 
     // Animation
     float glowPhase { 0.0f };
-
-    // Cached background image for performance
-    juce::Image bgCache;
-    bool bgDirty { true };
+    int   lastPreset { -1  };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WelcomeToRazorAudioProcessorEditor)
 };

@@ -63,6 +63,7 @@ target_link_libraries(WelcomeToRazor
         juce::juce_dsp
         juce::juce_graphics
         juce::juce_gui_basics
+        juce::juce_opengl
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
