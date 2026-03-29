@@ -17,16 +17,17 @@ struct RazorPreset
 
 static constexpr RazorPreset kPresets[] =
 {
-    { "Devil Chorus",   0.75f, 0.40f, 0.60f, 0.30f, 0.85f },
-    { "SAVAGE Hell",    0.90f, 0.85f, 0.70f, 0.80f, 1.00f },
-    { "Dark Raw",       0.60f, 0.50f, 0.40f, 0.45f, 0.70f },
-    { "Solid Buck",     0.55f, 0.65f, 0.35f, 0.55f, 0.80f },
-    { "GNARLY BUCK",    0.95f, 0.90f, 0.80f, 0.90f, 1.00f },
-    { "RAZOR EDGE",     0.85f, 0.70f, 0.90f, 0.75f, 0.95f },
-    { "POWER VOCAL",    0.50f, 0.80f, 0.20f, 0.85f, 0.75f },
-    { "VOID SCREAM",    1.00f, 0.95f, 0.65f, 0.60f, 1.00f },
-    { "INDUSTRIAL",     0.80f, 0.75f, 0.85f, 0.50f, 0.90f },
-    { "KRUMP KING",     0.88f, 0.82f, 0.55f, 0.88f, 0.92f },
+    //               name           gash  blood sharpen recoil mixtape
+    { "Devil Chorus",   0.78f, 0.55f, 0.60f, 0.55f, 0.90f },
+    { "SAVAGE Hell",    0.92f, 0.88f, 0.72f, 0.85f, 1.00f },
+    { "Dark Raw",       0.70f, 0.62f, 0.42f, 0.60f, 0.82f },
+    { "Solid Buck",     0.68f, 0.72f, 0.38f, 0.70f, 0.88f },
+    { "GNARLY BUCK",    0.96f, 0.92f, 0.82f, 0.92f, 1.00f },
+    { "RAZOR EDGE",     0.88f, 0.75f, 0.92f, 0.80f, 0.96f },
+    { "POWER VOCAL",    0.62f, 0.82f, 0.22f, 0.90f, 0.82f },
+    { "VOID SCREAM",    1.00f, 0.96f, 0.68f, 0.72f, 1.00f },
+    { "INDUSTRIAL",     0.84f, 0.80f, 0.88f, 0.62f, 0.92f },
+    { "KRUMP KING",     0.92f, 0.86f, 0.58f, 0.92f, 0.96f },
 };
 
 static constexpr int kNumPresets = (int)(sizeof(kPresets) / sizeof(kPresets[0]));
@@ -98,8 +99,14 @@ private:
         juce::dsp::IIR::Filter<float>
     > presenceChain;
 
-    // Gain stages
+    // Makeup gain (compensates compressor gain reduction)
+    juce::dsp::Gain<float> makeupGain;
+
+    // Final output gain
     juce::dsp::Gain<float> outputGain;
+
+    // Output soft clipper / limiter
+    juce::dsp::WaveShaper<float> outputClipper;
 
     double currentSampleRate { 44100.0 };
     int    currentBlockSize  { 512 };

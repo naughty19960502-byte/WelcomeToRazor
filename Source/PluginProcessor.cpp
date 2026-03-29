@@ -41,6 +41,13 @@ WelcomeToRazorAudioProcessor::WelcomeToRazorAudioProcessor()
     {
         return std::tanh (x);
     };
+
+    // Output soft clipper: smooth knee at ±1, allows up to ±1.5 before hard limiting
+    outputClipper.functionToUse = [] (float x)
+    {
+        constexpr float knee = 0.75f;
+        return std::tanh (x * knee) / knee;
+    };
 }
 
 WelcomeToRazorAudioProcessor::~WelcomeToRazorAudioProcessor() {}
@@ -60,11 +67,16 @@ void WelcomeToRazorAudioProcessor::prepareToPlay (double sampleRate, int samples
 
     saturation   .prepare (spec);
     compressor   .prepare (spec);
+    makeupGain   .prepare (spec);
     filterChain  .prepare (spec);
     presenceChain.prepare (spec);
     outputGain   .prepare (spec);
+    outputClipper.prepare (spec);
 
-    outputGain.setGainDecibels (0.0f);
+    makeupGain.setRampDurationSeconds (0.05);
+    outputGain.setRampDurationSeconds (0.05);
+    // Default output: +9 dB — ensures processed signal hits harder than dry
+    outputGain.setGainDecibels (9.0f);
 
     dryBuffer.setSize (2, samplesPerBlock);
 
@@ -117,6 +129,12 @@ void WelcomeToRazorAudioProcessor::updateDSP()
     *filterChain.get<1>().coefficients =
         *juce::dsp::IIR::Coefficients<float>::makeLowShelf (
             currentSampleRate, 16000.0f, 0.5f, 0.85f);
+
+    // ── BLOOD: Compressor makeup gain (0 dB … +28 dB) ────────────────
+    // Heavy compression (high blood) reduces level significantly;
+    // makeup compensates so the compressed signal stays loud.
+    const float compMakeupDB = juce::jmap (blood, 0.0f, 28.0f);
+    makeupGain.setGainDecibels (compMakeupDB);
 
     // ── RECOIL: Presence boost at 4 kHz (0 dB … +12 dB) ──────────────
     const float presenceGainDB = juce::jmap (recoil, 0.0f, 12.0f);
@@ -175,6 +193,13 @@ void WelcomeToRazorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         compressor.process (ctx);
     }
 
+    // ── Compressor makeup gain ────────────────────────────────────────
+    {
+        juce::dsp::AudioBlock<float> block (buffer);
+        juce::dsp::ProcessContextReplacing<float> ctx (block);
+        makeupGain.process (ctx);
+    }
+
     // ── SHARPEN: filter chain ─────────────────────────────────────────
     {
         juce::dsp::AudioBlock<float> block (buffer);
@@ -199,8 +224,19 @@ void WelcomeToRazorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             wet[i] = dry[i] * (1.0f - mix) + wet[i] * mix;
     }
 
-    // ── Output gain: compensate for saturation loudness ───────────────
-    buffer.applyGain (juce::Decibels::decibelsToGain (-3.0f));
+    // ── Output gain (+9 dB default) ───────────────────────────────────
+    {
+        juce::dsp::AudioBlock<float> block (buffer);
+        juce::dsp::ProcessContextReplacing<float> ctx (block);
+        outputGain.process (ctx);
+    }
+
+    // ── Final soft clipper (prevents digital clipping) ────────────────
+    {
+        juce::dsp::AudioBlock<float> block (buffer);
+        juce::dsp::ProcessContextReplacing<float> ctx (block);
+        outputClipper.process (ctx);
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
